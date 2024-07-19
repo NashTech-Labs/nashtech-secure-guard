@@ -1,14 +1,11 @@
 package org.nashtech.zap.core;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.zaproxy.clientapi.core.*;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 public class ZapScanner {
-    private static final Logger logger = LogManager.getLogger(ZapScanner.class);
     private ZapClient zapClient;
 
     public ZapScanner(int zapPort) {
@@ -20,7 +17,7 @@ public class ZapScanner {
             ApiResponse response = zapClient.getClientApi().ascan.scan(targetUrl, "True", "False", null, null, null);
             System.out.println("Scan started: " + response.toString());
         } catch (ClientApiException e) {
-            logger.error("Error starting scan", e);
+            System.out.println("Error starting scan" + e);
         }
     }
 

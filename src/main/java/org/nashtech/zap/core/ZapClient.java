@@ -9,7 +9,6 @@ public class ZapClient {
     public ZapClient(int zapPort) {
         ZapConfig config = new ZapConfig();
         String zapAddress = config.getProperty("zap.address");
-        //int zapPort = Integer.parseInt(config.getProperty("zap.port"));
         String zapApiKey = config.getProperty("zap.apikey");
 
         clientApi = new ClientApi(zapAddress, zapPort, zapApiKey);

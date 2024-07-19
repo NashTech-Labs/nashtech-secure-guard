@@ -1,7 +1,5 @@
 package org.nashtech.zap.core;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.nashtech.zap.config.ZapConfig;
 import org.zaproxy.clientapi.core.ApiResponse;
 import org.zaproxy.clientapi.core.ClientApi;
@@ -10,7 +8,6 @@ import org.zaproxy.clientapi.core.ClientApiException;
 import java.io.IOException;
 
 public class ZapReport {
-    private static final Logger logger = LogManager.getLogger(ZapReport.class);
     private ZapClient zapClient;
 
     public ZapReport(int zapPort) {

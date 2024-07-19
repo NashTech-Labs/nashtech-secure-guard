@@ -1,10 +1,8 @@
 package org.nashtech.zap.core;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+
 import org.nashtech.zap.config.ZapConfig;
 import org.nashtech.zap.exceptions.ZapException;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -12,7 +10,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 public class ZapManager {
-    private static final Logger logger = LogManager.getLogger(ZapManager.class);
     private Process zapProcess;
     private ZapConfig config;
 
