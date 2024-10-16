@@ -40,9 +40,9 @@ public class ZapReport {
                         null,
                         null,
                         null);
-
+                String reportPath = "/home/zap/" + reportName;
                 System.out.println("ZAP report generated: " + response.toString());
-                zapManager.runCommand("docker cp secure-guard-container:/home/zap/security-test-report.html " + projectRoot);
+                zapManager.runCommand("docker cp secure-guard-container:" + reportPath + " " + projectRoot);
             } catch (ClientApiException e) {
                 System.out.println("Error generating ZAP report " + e);
             } catch (IOException e) {

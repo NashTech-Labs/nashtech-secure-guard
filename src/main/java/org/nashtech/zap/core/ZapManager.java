@@ -51,13 +51,35 @@ public class ZapManager {
     public void stopZap() {
         if (zapProcess != null && zapProcess.isAlive()) {
             try {
-                runCommand("docker stop $(docker ps -q --filter ancestor=" + config.getProperty("zap.docker.image") + ")");
-                System.out.println("OWASP ZAP stopped");
-            } catch (IOException e) {
-                System.out.println("Failed to stop OWASP ZAP :" +  e);
+                // Step 1: Attempt to stop the ZAP container
+                ProcessBuilder stopBuilder = new ProcessBuilder("/bin/sh", "-c",
+                        "docker stop $(docker ps -q --filter ancestor=" + config.getProperty("zap.docker.image") + ")");
+                Process stopProcess = stopBuilder.start();
+                stopProcess.waitFor(); // Wait for the stop command to complete
+                // Step 2: Verify if the container is actually stopped
+                ProcessBuilder checkBuilder = new ProcessBuilder("/bin/sh", "-c",
+                        "docker ps -q --filter ancestor=" + config.getProperty("zap.docker.image"));
+                Process checkProcess = checkBuilder.start();
+                BufferedReader reader = new BufferedReader(new InputStreamReader(checkProcess.getInputStream()));
+                String line;
+                boolean zapRunning = false;
+                while ((line = reader.readLine()) != null) {
+                    if (!line.trim().isEmpty()) {
+                        zapRunning = true;
+                    }
+                }
+                // Step 3: Print status based on whether ZAP is stopped
+                if (!zapRunning) {
+                    System.out.println("OWASP ZAP stopped");
+                } else {
+                    System.out.println("Failed to stop OWASP ZAP: ZAP is still running.");
+                }
+            } catch (IOException | InterruptedException e) {
+                System.out.println("Failed to stop OWASP ZAP: " + e);
             }
         }
     }
+
 
     public Process runCommand(String command) throws IOException {
         ProcessBuilder processBuilder = new ProcessBuilder(command.split(" "));

@@ -1,5 +1,9 @@
 package org.nashtech.zap.core;
 
+import io.restassured.RestAssured;
+import io.restassured.response.Response;
+import io.restassured.specification.RequestSpecification;
+import org.nashtech.zap.config.ZapConfig;
 import org.zaproxy.clientapi.core.*;
 
 import java.util.List;
@@ -7,6 +11,8 @@ import java.util.stream.Collectors;
 
 public class ZapScanner {
     private ZapClient zapClient;
+    private RequestSpecification requestSpecification;
+    private Response response;
 
     public ZapScanner(int zapPort) {
         zapClient = new ZapClient(zapPort);
@@ -102,6 +108,59 @@ public class ZapScanner {
             activeScan(webAppUrl);
             System.out.println("Active scan completed");
         }
+    }
+
+    public void callZapRestAssured(int zapPort) {
+        ZapConfig config = new ZapConfig();
+        String zapAddress = config.getProperty("zap.address");
+        String zapApiKey = config.getProperty("zap.apikey");
+        requestSpecification = RestAssured.given();
+        requestSpecification.baseUri("http://" + zapAddress + ":" + zapPort + "/JSON");
+        requestSpecification.queryParam("apikey", zapApiKey);
+
+        //proxy = new Proxy().setSslProxy(zapAddress + ":" + zapPort).setHttpProxy(zapAddress + ":" + zapPort);
+    }
+
+    public void addApiUrlToScanTree (String site_to_test){
+        requestSpecification.queryParam("url", site_to_test);
+        response = requestSpecification.get("/core/action/accessUrl/");
+        if (response.getStatusCode() == 200)
+            System.out.println("URL has been added to Scan tree");
+    }
+
+    public void startApiActiveScan (String site_to_test){
+        requestSpecification.queryParam("url", site_to_test);
+        response = requestSpecification.get("/ascan/action/scan/");
+        if (response.getStatusCode() == 200) {
+            System.out.println("Active scan has started");
+            waitForApiActiveScanCompletion();
+        }
+    }
+
+    public void waitForApiActiveScanCompletion () {
+        response = requestSpecification.get("/ascan/view/status/");
+        String status = response.jsonPath().get("status");
+        int previousPercentage = 0; // Variable to track the previous percentage
+        while (!status.equals("100")) {
+            // Get the current status as an integer percentage
+            int currentPercentage = Integer.parseInt(status);
+            // Print status only if 10% more has been completed compared to the previous
+            if (currentPercentage >= previousPercentage + 10) {
+                System.out.println("Active scan is " + currentPercentage + "% complete");
+                previousPercentage = currentPercentage; // Update previous percentage
+            }
+            // Sleep for a while to avoid too many requests
+            try {
+                Thread.sleep(5000); // Wait for 5 seconds before checking again
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            // Update the status
+            response = requestSpecification.get("/ascan/view/status/");
+            status = response.jsonPath().get("status");
+        }
+
+        System.out.println("Active scan has completed");
     }
 
 
