@@ -7,6 +7,7 @@ import org.nashtech.zap.config.ZapConfig;
 import org.zaproxy.clientapi.core.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class ZapScanner {
@@ -110,22 +111,34 @@ public class ZapScanner {
         }
     }
 
-    public void callZapRestAssured(int zapPort) {
+    public void callZapRestAssured(int zapPort, Map<String, String> headers, String authType, String authValue) {
         ZapConfig config = new ZapConfig();
         String zapAddress = config.getProperty("zap.address");
         String zapApiKey = config.getProperty("zap.apikey");
         requestSpecification = RestAssured.given();
         requestSpecification.baseUri("http://" + zapAddress + ":" + zapPort + "/JSON");
         requestSpecification.queryParam("apikey", zapApiKey);
-
-        //proxy = new Proxy().setSslProxy(zapAddress + ":" + zapPort).setHttpProxy(zapAddress + ":" + zapPort);
+        // Add Headers
+        if (headers != null) {
+            requestSpecification.headers(headers);
+        }
+        // Add Authentication
+        if ("Bearer".equalsIgnoreCase(authType) && authValue != null) {
+            requestSpecification.header("Authorization", "Bearer " + authValue);
+        } else if ("Basic".equalsIgnoreCase(authType) && authValue != null) {
+            requestSpecification.header("Authorization", "Basic " + authValue);
+        }
     }
 
     public void addApiUrlToScanTree (String site_to_test){
         requestSpecification.queryParam("url", site_to_test);
         response = requestSpecification.get("/core/action/accessUrl/");
-        if (response.getStatusCode() == 200)
+        if (response.getStatusCode() == 200) {
             System.out.println("URL has been added to Scan tree");
+        }
+        else {
+            System.err.println("Failed to add URL to the Scan tree. Response: " + response.getBody().asString());
+        }
     }
 
     public void startApiActiveScan (String site_to_test){
@@ -134,7 +147,9 @@ public class ZapScanner {
         if (response.getStatusCode() == 200) {
             System.out.println("Active scan has started");
             waitForApiActiveScanCompletion();
-        }
+        } else {
+        System.err.println("Failed to start Active Scan. Response: " + response.getBody().asString());
+    }
     }
 
     public void waitForApiActiveScanCompletion () {
