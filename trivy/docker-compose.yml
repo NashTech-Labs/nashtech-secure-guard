@@ -1,0 +1,19 @@
+version: "3.7"
+services:
+  trivy:
+    image: aquasec/trivy:latest
+    container_name: trivy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - trivy-cache:/root/.cache/trivy
+    networks:
+      - trivy-net
+    environment:
+      - TRIVY_CACHE_DIR=/root/.cache/trivy
+
+volumes:
+  trivy-cache:
+
+networks:
+  trivy-net:
+    driver: bridge

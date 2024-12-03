@@ -4,6 +4,7 @@ package org.nashtech.zap.core;
 import org.nashtech.zap.config.ZapConfig;
 import org.nashtech.zap.exceptions.ZapException;
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.concurrent.CompletableFuture;
@@ -106,7 +107,7 @@ public class ZapManager {
         return output.toString();
     }
 
-    private Process runCommandAsync(String command) throws IOException {
+    public Process runCommandAsync(String command) throws IOException {
         ProcessBuilder processBuilder = new ProcessBuilder(command.split("\\s+"));
         processBuilder.redirectErrorStream(true); // Redirect error stream to output stream
 
@@ -137,5 +138,31 @@ public class ZapManager {
 
         return process;
     }
+
+    public Process runTrivyCommand(String command) throws IOException {
+        ProcessBuilder processBuilder = new ProcessBuilder(command.split(" "));
+        processBuilder.directory(new File("trivy")); // Set the working directory
+        processBuilder.redirectErrorStream(true);  // Merge error and output streams
+
+        // Start the process
+        Process process = processBuilder.start();
+
+        // Read the output in real-time (as the process is running)
+        BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+        String line;
+        while ((line = reader.readLine()) != null) {
+            System.out.println(line);  // Print output as it's produced
+        }
+
+        // Optionally, wait for the process to finish before returning
+        try {
+            process.waitFor();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        return process;
+    }
+
 
 }
