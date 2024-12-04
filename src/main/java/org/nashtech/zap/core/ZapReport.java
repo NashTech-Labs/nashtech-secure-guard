@@ -5,6 +5,7 @@ import org.zaproxy.clientapi.core.ApiResponse;
 import org.zaproxy.clientapi.core.ClientApi;
 import org.zaproxy.clientapi.core.ClientApiException;
 
+import java.io.FileOutputStream;
 import java.io.IOException;
 
 public class ZapReport {
@@ -47,6 +48,25 @@ public class ZapReport {
                 System.out.println("Error generating ZAP report " + e);
             } catch (IOException e) {
                 throw new RuntimeException(e);
+            }
+        }
+    }
+
+    public void generateJsonReport(String reportName) {
+        ClientApi api = zapClient.getClientApi();
+        String projectRoot = System.getProperty("user.dir");
+        if (api != null) {
+            try {
+                // Generate JSON report
+                byte[] jsonReport = api.callApiOther("core", "other", "jsonreport", null);
+                // Save the report to a file
+                String reportPath = projectRoot + "/" + reportName;
+                try (FileOutputStream fos = new FileOutputStream(reportPath)) {
+                    fos.write(jsonReport);
+                }
+                System.out.println("ZAP JSON report generated: " + reportPath);
+            } catch (ClientApiException | IOException e) {
+                System.out.println("Error generating ZAP JSON report: " + e.getMessage());
             }
         }
     }
