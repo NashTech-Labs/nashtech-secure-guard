@@ -4,6 +4,10 @@ import io.restassured.RestAssured;
 import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
 import org.nashtech.zap.config.ZapConfig;
+import org.openqa.selenium.Proxy;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.chrome.ChromeOptions;
 import org.zaproxy.clientapi.core.*;
 
 import java.util.List;
@@ -26,6 +30,24 @@ public class ZapScanner {
         } catch (ClientApiException e) {
             System.out.println("Error starting scan" + e);
         }
+    }
+
+    public WebDriver initializeSeleniumWithZapProxy(WebDriver driver, ChromeOptions options, int zapPort) {
+        if (driver != null) {
+            throw new IllegalArgumentException("WebDriver must not be already initialized.");
+        }
+        // Set up the ZAP proxy
+        Proxy zapProxy = new Proxy();
+        zapProxy.setHttpProxy("localhost:" + zapPort)
+                .setSslProxy("localhost:" + zapPort);
+        // Apply the proxy to the existing ChromeOptions
+        if (options == null) {
+            options = new ChromeOptions();
+        }
+        options.setProxy(zapProxy);
+        options.addArguments("--ignore-certificate-errors");
+        // Initialize and return a new WebDriver instance
+        return new ChromeDriver(options);
     }
 
     public List<String>  getUrlsFromScanTree() throws ClientApiException {
@@ -80,15 +102,7 @@ public class ZapScanner {
     public void addUrlScanTree(String webAppUrl) throws ClientApiException {
         ClientApi api = zapClient.getClientApi();
         api.core.accessUrl(webAppUrl, "false");
-        if(getUrlsFromScanTree().contains(webAppUrl)){
-            System.out.println("Sites to test : " + getUrlsFromScanTree());
-        }
-    }
-
-    public void AllScan(String webAppUrl, String activeScanBool) throws ClientApiException {
-        System.out.println("Starting Spider Scan");
-        ClientApi api = zapClient.getClientApi();
-        ApiResponse apiResponse = api.spider.scan(webAppUrl, null, null, null, null);
+        ApiResponse apiResponse = api.spider.scan(webAppUrl, "1", null, null, null);
         String spiderScanId = ((ApiResponseElement)apiResponse).getValue();
         ApiResponse spiderScanStatus = api.spider.status(spiderScanId);
         String statusAs = ((ApiResponseElement)spiderScanStatus).getValue();
@@ -98,16 +112,51 @@ public class ZapScanner {
 
         }
         System.out.println("Spider scan completed");
+        if(getUrlsFromScanTree().contains(webAppUrl)){
+            System.out.println("URL successfully added to Sites tree: " + webAppUrl);
+            System.out.println("Sites to test : " + getUrlsFromScanTree());
+        }
+        else {
+            System.err.println("Failed to add URL to Sites tree: " + webAppUrl);
+        }
+    }
 
+    public void allScan(boolean activeScanEnabled) throws ClientApiException {
         waitTillPassiveScanCompleted();
+        ClientApi api = zapClient.getClientApi();
+        System.out.println("Checking Sites Tree");
+        ApiResponseList sitesList = (ApiResponseList) api.core.sites();
+        for (ApiResponse site : sitesList.getItems()) {
+            String siteUrl = ((ApiResponseElement) site).getValue();
+            System.out.println("Found URL: " + siteUrl);
 
-        addUrlScanTree(webAppUrl);
+            // Perform Active Scan if enabled
+            if (activeScanEnabled) {
+                System.out.println("Starting Active Scan on: " + siteUrl);
+                activeScan(siteUrl);
+            }
+            else{
+                System.out.println("URL not enabled for active scan : " + siteUrl);
+            }
+        }
+        System.out.println("All scans completed.");
+    }
 
-        if(activeScanBool!=null&&activeScanBool.equalsIgnoreCase("true")){
-            System.out.println("Starting Active Scan");
-            api.ascan.enableAllScanners(null);
-            activeScan(webAppUrl);
-            System.out.println("Active scan completed");
+    public void activeScanImportantUrls(boolean activeScanEnabled, List<String> urlListToScan) throws ClientApiException {
+        waitTillPassiveScanCompleted();
+        ClientApi api = zapClient.getClientApi();
+        System.out.println("Checking Sites Tree");
+            // Perform Active Scan if enabled
+        for(String activeScanUrl: urlListToScan){
+            if (activeScanEnabled) {
+                System.out.println("Starting Active Scan on: " + activeScanUrl);
+                api.core.accessUrl(activeScanUrl, "true");
+                activeScan(activeScanUrl);
+            }
+            else{
+                System.out.println("URL not enabled for active scan : " + activeScanUrl);
+            }
+            System.out.println("All scans completed.");
         }
     }
 
