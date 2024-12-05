@@ -139,7 +139,16 @@ public class ZapManager {
         return process;
     }
 
-    public Process runTrivyCommand(String command) throws IOException {
+    public Process runTrivyCommand(String imageNames, String reportType) throws IOException {
+        // Hardcode the command with the shell script and arguments
+        String command;
+        if(reportType.equalsIgnoreCase("html")){
+            command =  "./trivy-execute-html.sh " + imageNames;
+        }
+        else{
+            command =  "./trivy-execute-json.sh " + imageNames;
+        }
+
         ProcessBuilder processBuilder = new ProcessBuilder(command.split(" "));
         processBuilder.directory(new File("trivy")); // Set the working directory
         processBuilder.redirectErrorStream(true);  // Merge error and output streams

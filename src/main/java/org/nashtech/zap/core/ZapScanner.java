@@ -10,8 +10,7 @@ import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.zaproxy.clientapi.core.*;
 
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class ZapScanner {
@@ -77,7 +76,6 @@ public class ZapScanner {
         ClientApi api = zapClient.getClientApi();
         ApiResponse apiResponse = api.ascan.scan(webAppUrl, "True", "False", null, null, null);
         System.out.println("apiResponseActive : " + apiResponse.getName());
-
         scanId = ((ApiResponseElement)apiResponse).getValue();
         ApiResponse activeScanStatus = api.ascan.status(scanId);
         String statusAs = ((ApiResponseElement)activeScanStatus).getValue();
@@ -101,7 +99,7 @@ public class ZapScanner {
 
     public void addUrlScanTree(String webAppUrl) throws ClientApiException {
         ClientApi api = zapClient.getClientApi();
-        api.core.accessUrl(webAppUrl, "false");
+        api.core.accessUrl(webAppUrl, "true");
         ApiResponse apiResponse = api.spider.scan(webAppUrl, "1", null, null, null);
         String spiderScanId = ((ApiResponseElement)apiResponse).getValue();
         ApiResponse spiderScanStatus = api.spider.status(spiderScanId);
@@ -128,8 +126,6 @@ public class ZapScanner {
         ApiResponseList sitesList = (ApiResponseList) api.core.sites();
         for (ApiResponse site : sitesList.getItems()) {
             String siteUrl = ((ApiResponseElement) site).getValue();
-            System.out.println("Found URL: " + siteUrl);
-
             // Perform Active Scan if enabled
             if (activeScanEnabled) {
                 System.out.println("Starting Active Scan on: " + siteUrl);
@@ -142,23 +138,57 @@ public class ZapScanner {
         System.out.println("All scans completed.");
     }
 
-    public void activeScanImportantUrls(boolean activeScanEnabled, List<String> urlListToScan) throws ClientApiException {
-        waitTillPassiveScanCompleted();
-        ClientApi api = zapClient.getClientApi();
+    public void activeScanImportantUrls( List<String> urlListToScan, boolean activeScanEnabled) throws ClientApiException {
+        this.waitTillPassiveScanCompleted();
+        ClientApi api = this.zapClient.getClientApi();
         System.out.println("Checking Sites Tree");
-            // Perform Active Scan if enabled
-        for(String activeScanUrl: urlListToScan){
-            if (activeScanEnabled) {
-                System.out.println("Starting Active Scan on: " + activeScanUrl);
-                api.core.accessUrl(activeScanUrl, "true");
-                activeScan(activeScanUrl);
+        List<String> urlFromSiteTreeList = new ArrayList<>();
+        // Check if active scan is enabled for URLs
+        if (activeScanEnabled) {
+            // Retrieve the full list of URLs from the site tree
+            ApiResponse siteTree = api.core.sites();
+            ApiResponseList sitesList = (ApiResponseList) api.core.sites();
+            for (ApiResponse site : sitesList.getItems()) {
+                String siteUrl = ((ApiResponseElement) site).getValue();
+                urlFromSiteTreeList.add(siteUrl);
             }
-            else{
-                System.out.println("URL not enabled for active scan : " + activeScanUrl);
+            System.out.println("Extracted URLs: " + urlFromSiteTreeList);
+            // Filter URLs based on keywords in urlListToScan
+            List<String> filteredUrls = filterUrlsByKeywords(urlFromSiteTreeList, urlListToScan);
+            System.out.println("Filtered URLs: " + filteredUrls);
+            // Perform active scan on each filtered URL
+            for (String url : filteredUrls) {
+                System.out.println("Starting Active Scan on: " + url);
+                this.activeScan(url);
             }
-            System.out.println("All scans completed.");
+        } else {
+            System.out.println("Active scan is not enabled.");
         }
+
+        System.out.println("All scans completed.");
     }
+
+    /**
+     * Filters URLs based on the keywords provided in urlListToScan.
+     */
+    private List<String> filterUrlsByKeywords(List<String> urlsToScan, List<String> urlListToScan) {
+        // Use a Set to automatically handle duplicates
+        Set<String> filteredUrlsSet = new HashSet<>();
+
+        // Iterate through each URL and check if it contains any of the keywords
+        for (String url : urlsToScan) {
+            for (String keyword : urlListToScan) {
+                if (url.contains(keyword)) {
+                    filteredUrlsSet.add(url);  // Add to Set to avoid duplicates
+                    break;  // Once a keyword is matched, no need to check further for this URL
+                }
+            }
+        }
+
+        // Convert the Set back to a List to return
+        return new ArrayList<>(filteredUrlsSet);
+    }
+
 
     public void callZapRestAssured(int zapPort, Map<String, String> headers, String authType, String authValue) {
         ZapConfig config = new ZapConfig();
