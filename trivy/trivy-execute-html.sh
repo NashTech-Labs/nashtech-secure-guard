@@ -23,6 +23,14 @@ fi
 # Set the root directory of the project (you can adjust this if needed)
 ROOT_DIR="$(pwd)"  # or specify a path like /path/to/your/project
 
+# Check if a container named 'trivy' already exists and remove it
+EXISTING_CONTAINER=$(docker ps -aq -f name=trivy)
+if [ -n "$EXISTING_CONTAINER" ]; then
+    echo "Removing existing 'trivy' container..."
+    docker rm -f "$EXISTING_CONTAINER"
+    check_command
+fi
+
 # Start Trivy container to download the vulnerability database
 echo "Starting Trivy service to download the vulnerability database..."
 docker-compose up -d trivy
@@ -83,4 +91,3 @@ echo "</body></html>" >> "$COMBINED_REPORT_HTML"
 
 echo "Combined HTML report saved as $COMBINED_REPORT_HTML."
 echo "All scans completed. Combined report generated."
-

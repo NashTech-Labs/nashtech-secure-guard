@@ -67,12 +67,14 @@ Add the JAR file to the classpath by updating the pom.xml file of your Selenium 
             scanner.addUrlScanTree(anotherPageUrl);
             
             // Perform active scanning
-            scanner.allScan(anotherPageUrl, true); // Set false if active scanning is not required
-            
+            scanner.allScan(anotherPageUrl, true); // Use this method to do scanning on all URLs. This is time consuming.Set false if active scanning is not required
+            scanner.activeScanImportantUrls(Arrays.asList("keyword1", "keyword2"), true); //Use this method to scan only specific urls for your website based on entered list of keywords
+
             // Generate a security report
             ZapReport report = new ZapReport(8080);
-            report.generateReport("security-test-report.html", "Security Testing Report");
-            
+            report.generateReport("security-test-report.html", "Security Testing Report"); //This generates HTML report
+            report.generateJsonReport("frontend-test-report.json"); //This generates json report       
+
             // Stop OWASP ZAP container and quit WebDriver
             zapManager.stopZap();
             driver.quit();
@@ -91,3 +93,11 @@ Add the JAR file to the classpath by updating the pom.xml file of your Selenium 
     ZapReport report = new ZapReport(8080);
     report.generateReport("api-test-report.html", "Security Testing Report");
     zapManager.stopZap();
+
+
+
+### Run Trivy To Scan Docker Images
+You can also use Trivy to scan vulnerabilities for your docker images. You do not need to add this repositories' jar file into your project. All you need to do is take the latest pull of secure-guard and run following command in main class
+```javascript
+ZapManager zapManager = new ZapManager();
+zapManager.runTrivyCommand("nginx:latest redis:6.2 postgres alpine:3.14", "json"); //Provide any number of docker image names as first argument seperated by space. Use "json" or "html" option to select type of report to generate
