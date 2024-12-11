@@ -87,7 +87,7 @@ Add the JAR file to the classpath by updating the pom.xml file of your Selenium 
     zapManager.startZap(8080);
     String currentUrl = "your_application_url";
     System.out.println("currentUrl : " + currentUrl);
-    scanner.callZapRestAssured(8080);
+    scanner.callZapRestAssured(8080, headerMap, authType, authValue);
     scanner.addApiUrlToScanTree(currentUrl);
     scanner.startApiActiveScan(currentUrl);
     ZapReport report = new ZapReport(8080);
